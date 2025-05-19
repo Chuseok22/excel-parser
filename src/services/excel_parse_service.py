@@ -14,8 +14,20 @@ class ExcelParseService:
     Excel 파일 파싱 서비스
     """
 
-    def __init__(self):
-        return
+    def __init__(self, input_folder=None, output_folder=None):
+        """
+        ExcelParseService 초기화
+        
+        Args:
+            input_folder (str): 입력 엑셀 파일 폴더 경로
+            output_folder (str): 출력 엑셀 파일 폴더 경로
+        """
+        self.input_folder = input_folder or os.path.join(os.getcwd(), "input")
+        self.output_folder = output_folder or os.path.join(os.getcwd(), "output")
+        
+        # 출력 폴더가 없으면 생성
+        if not os.path.exists(self.output_folder):
+            os.makedirs(self.output_folder, exist_ok=True)
         
     def read_excel(self, file_path):
         """
@@ -71,7 +83,7 @@ class ExcelParseService:
         # 원본 파일명에서 확장자 추출
         # file_base: 파일명
         # file_ext: 확장자
-        file_base, file_ext = os.path.splittext(file_name)
+        file_base, file_ext = os.path.splitext(file_name)
         
         # 각 고유 값에 대해 별도의 엑셀 파일 생성
         for value in unique_values:
@@ -88,6 +100,24 @@ class ExcelParseService:
             filtered_df = df[df.iloc[:, column_idx] == value]
             
             # 엑셀 파일 저장
-            self.write_excel(filtered_df, f"{file_base}_{safe_value}{file_ext}")
+            output_file = f"{file_base}_{safe_value}{file_ext}"
+            self.write_excel(filtered_df, output_file)
+        
+        # 생성된 파일 경로 반환
+        output_files = []
+        for value in unique_values:
+            # 값이 NaN인 경우
+            if pd.isna(value):
+                value_str = "NA"
+            else:
+                value_str = str(value)
+            
+            # 파일명에 포함할 수 없는 문자 제거
+            safe_value = "".join(c for c in value_str if c not in r'\/:*?"<>|')
+            
+            # 출력 파일 경로 추가
+            output_files.append(os.path.join(self.output_folder, f"{file_base}_{safe_value}{file_ext}"))
+        
+        return output_files
             
 
