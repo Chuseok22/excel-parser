@@ -4,6 +4,8 @@ Excel 파일 파싱 서비스 로직
 
 import logging
 import os
+import json
+import csv
 
 import pandas as pd
 
@@ -119,5 +121,97 @@ class ExcelParseService:
             output_files.append(os.path.join(self.output_folder, f"{file_base}_{safe_value}{file_ext}"))
         
         return output_files
+        
+    def parse_excel(self, file_path, progress_callback=None):
+        """
+        엑셀 파일의 헤더를 파싱하는 기능
+        
+        Args:
+            file_path (str): 엑셀 파일 경로
+            progress_callback (callable): 진행률을 보고할 콜백 함수
             
+        Returns:
+            dict: {헤더명: {'data_type': 데이터타입, 'description': 설명}}
+        """
+        try:
+            # 엑셀 파일 읽기
+            df = pd.read_excel(file_path)
+            
+            # 결과 저장을 위한 딕셔너리
+            result = {}
+            
+            # 각 열에 대한 정보 추출
+            total_columns = len(df.columns)
+            for i, col in enumerate(df.columns):
+                # 데이터 타입 추론
+                col_type = str(df[col].dtype)
+                
+                # 설명 - 샘플 데이터 등을 포함
+                non_na_values = df[col].dropna()
+                sample_data = "데이터 없음"
+                if len(non_na_values) > 0:
+                    sample_values = non_na_values.head(3).tolist()
+                    sample_data = ", ".join(str(val) for val in sample_values)
+                
+                # 결과 저장
+                result[col] = {
+                    'data_type': col_type,
+                    'description': f"샘플 데이터: {sample_data}"
+                }
+                
+                # 진행률 업데이트
+                if progress_callback:
+                    progress = int((i + 1) / total_columns * 100)
+                    progress_callback(progress)
+            
+            return result
+            
+        except Exception as e:
+            logging.error(f"엑셀 파싱 오류: {str(e)}")
+            raise
+    
+    def save_as_csv(self, data, file_path):
+        """
+        결과를 CSV 파일로 저장
+        
+        Args:
+            data (dict): 저장할 데이터
+            file_path (str): 저장할 파일 경로
+        """
+        try:
+            with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                # 헤더 작성
+                writer.writerow(['헤더명', '데이터타입', '설명'])
+                
+                # 데이터 작성
+                for header, info in data.items():
+                    writer.writerow([
+                        header,
+                        info.get('data_type', ''),
+                        info.get('description', '')
+                    ])
+                    
+            return True
+        except Exception as e:
+            logging.error(f"CSV 저장 오류: {str(e)}")
+            raise
+    
+    def save_as_json(self, data, file_path):
+        """
+        결과를 JSON 파일로 저장
+        
+        Args:
+            data (dict): 저장할 데이터
+            file_path (str): 저장할 파일 경로
+        """
+        try:
+            with open(file_path, 'w', encoding='utf-8') as jsonfile:
+                json.dump(data, jsonfile, ensure_ascii=False, indent=2)
+                
+            return True
+        except Exception as e:
+            logging.error(f"JSON 저장 오류: {str(e)}")
+            raise
+
 
