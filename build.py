@@ -2,6 +2,11 @@ import os
 import subprocess
 import sys
 
+# Window CP1252 환경 stdout 인코딩 설정
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except AttributeError:
+    pass
 
 def main():
     print("Excel Parser EXE 빌드 시작")
