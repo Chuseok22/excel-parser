@@ -1,7 +1,7 @@
 import sys
 
 import tkinter as tk
-from ui.ui_main import UiMain
+from src.ui.ui_main import UiMain
 
 def main():
     """
